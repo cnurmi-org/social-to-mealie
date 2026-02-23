@@ -80,7 +80,21 @@ export async function generateRecipeFromAI(
             image: z.string().optional(),
             url: z.string().optional(),
             description: z.string(),
-            recipeIngredient: z.array(z.string()),
+            recipeIngredient: z.preprocess(
+                (val: any) => {
+                    if (!Array.isArray(val)) return val;
+                    return val.map((item: any) => {
+                        if (typeof item === "string") return item;
+                        if (typeof item === "object" && item !== null) {
+                            // Try common field names, fall back to joining all string values
+                            return item.text ?? item.name ?? item.ingredient ?? item.item ??
+                                Object.values(item).filter((v) => typeof v === "string").join(" ");
+                        }
+                        return String(item);
+                    });
+                },
+                z.array(z.string())
+            ),
             recipeInstructions: z.preprocess(
                 (val: any) => {
                     if (!Array.isArray(val)) return val;
