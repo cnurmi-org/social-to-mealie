@@ -69,7 +69,7 @@ export async function generateRecipeFromAI(
             if (val && typeof val === "object") {
                 // LLMs sometimes use non-schema.org field names
                 if (!val.recipeIngredient && val.ingredients) val.recipeIngredient = val.ingredients;
-                if (!val.recipeInstructions && val.instructions) val.recipeInstructions = val.instructions;
+                if (!val.recipeInstructions && (val.instructions ?? val.steps)) val.recipeInstructions = val.instructions ?? val.steps;
             }
             return val;
         },
@@ -107,6 +107,9 @@ export async function generateRecipeFromAI(
                             for (const step of item.itemListElement) {
                                 steps.push(typeof step === "string" ? { "@type": "HowToStep", text: step } : step);
                             }
+                        } else if (typeof item === "object" && item !== null && !item.text) {
+                            // Normalize description/name -> text
+                            steps.push({ ...item, text: item.description ?? item.name ?? item.step ?? JSON.stringify(item) });
                         } else {
                             steps.push(item);
                         }
