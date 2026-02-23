@@ -97,6 +97,7 @@ export async function generateRecipeFromAI(
             ),
             recipeInstructions: z.preprocess(
                 (val: any) => {
+                    console.info("[ai] raw recipeInstructions:", JSON.stringify(val));
                     if (!Array.isArray(val)) return val;
                     // Flatten HowToSection -> HowToStep and normalize strings
                     const steps: any[] = [];
