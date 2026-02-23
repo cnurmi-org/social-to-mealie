@@ -136,7 +136,7 @@ export async function generateRecipeFromAI(
                 openai: { structuredOutputs: false },
             },
             prompt: `
-        You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below.
+        You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below and return it as JSON.
 
         CRITICAL - recipeIngredient field:
         - List EVERY ingredient mentioned anywhere in the transcript or instructions, with quantities and units
