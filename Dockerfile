@@ -17,6 +17,16 @@ COPY package.json pnpm-lock.yaml ./
 RUN npm install -g pnpm
 RUN pnpm install --frozen-lockfile
 
+FROM base AS dev
+WORKDIR /app
+COPY --from=deps /app/node_modules ./node_modules
+COPY ./entrypoint.sh /app/entrypoint.sh
+ENV NODE_ENV=development
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+ENTRYPOINT ["/bin/sh","/app/entrypoint.sh"]
+CMD ["node", "--run", "dev"]
+
 FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules

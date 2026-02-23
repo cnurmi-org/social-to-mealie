@@ -1,0 +1,59 @@
+# Dev compose — fast iteration without CI builds
+#
+# Workflow:
+#   1. First time (or after package.json changes):
+#      docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml build
+#      docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml up -d
+#
+#   2. Code change (src/ only):
+#      git pull   # on mediasrv, in /home/cnurmi/repo/social-to-mealie
+#      # Next.js HMR picks up the change automatically — no restart needed
+#
+#   3. Package change (package.json/pnpm-lock.yaml):
+#      git pull && docker compose -f docs/compose.dev.yml build && docker compose -f docs/compose.dev.yml up -d
+#
+# Access dev server at http://mediasrv:4001
+#
+# Network: join whatever network 'mealie' is on.
+# Find it with: docker inspect mealie | grep -i network
+# Then update the 'name:' under networks below.
+
+secrets:
+  groq_api_key:
+    file: /home/cnurmi/docker/secrets/groq_api_key
+  mealie_api_key:
+    file: /home/cnurmi/docker/secrets/mealie_api_key
+
+services:
+  social-to-mealie-dev:
+    build:
+      context: /home/cnurmi/repo/social-to-mealie
+      target: dev
+    container_name: social-to-mealie-dev
+    restart: unless-stopped
+    volumes:
+      # Mount entire repo — node_modules stays from the image build
+      - /home/cnurmi/repo/social-to-mealie:/app
+      # Anonymous volume keeps the container's node_modules (not the host's)
+      - /app/node_modules
+    environment:
+      - TEXT_PROVIDER=groq
+      - TEXT_MODEL=llama-3.3-70b-versatile
+      - MEALIE_URL=http://mealie:9000
+      - MEALIE_GROUP_NAME=home
+      - LOCAL_TRANSCRIPTION_MODEL=Xenova/whisper-base
+      - YTDLP_VERSION=latest
+    secrets:
+      - groq_api_key
+      - mealie_api_key
+    ports:
+      - "4001:3000"
+    networks:
+      - mealie_net
+
+networks:
+  mealie_net:
+    external: true
+    # Run: docker inspect mealie | grep -A5 Networks
+    # to find the actual network name, then update below:
+    name: mediasrv_default

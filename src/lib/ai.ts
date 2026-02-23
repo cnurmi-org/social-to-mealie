@@ -1,5 +1,6 @@
 import { env } from "./constants";
 import { createOpenAI } from "@ai-sdk/openai";
+import { createGroq } from "@ai-sdk/groq";
 import { experimental_transcribe, generateObject } from "ai";
 import { z } from "zod";
 import { pipeline } from '@huggingface/transformers';
@@ -15,7 +16,7 @@ const transcriptionModel = client.transcription(env.TRANSCRIPTION_MODEL);
 const textModel = env.TEXT_PROVIDER === "minimax"
     ? createOpenAI({ baseURL: "https://api.minimax.io/v1", apiKey: env.MINIMAX_API_KEY }).chat(env.TEXT_MODEL)
     : env.TEXT_PROVIDER === "groq"
-    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY }).chat(env.TEXT_MODEL)
+    ? createGroq({ apiKey: env.GROQ_API_KEY })(env.TEXT_MODEL)
     : client.chat(env.TEXT_MODEL);
 
 export async function getTranscription(blob: Blob): Promise<string> {
@@ -70,16 +71,19 @@ export async function generateRecipeFromAI(
                 // LLMs sometimes use non-schema.org field names
                 if (!val.recipeIngredient && val.ingredients) val.recipeIngredient = val.ingredients;
                 if (!val.recipeInstructions && (val.instructions ?? val.steps)) val.recipeInstructions = val.instructions ?? val.steps;
+                // Normalize nulls to undefined so defaults can kick in
+                if (val.name == null) val.name = undefined;
+                if (val.description == null) val.description = undefined;
             }
             return val;
         },
         z.object({
             "@context": z.string().default("https://schema.org"),
             "@type": z.string().default("Recipe"),
-            name: z.string(),
+            name: z.string().default("Unknown Recipe"),
             image: z.string().optional(),
             url: z.string().optional(),
-            description: z.string(),
+            description: z.string().default(""),
             recipeIngredient: z.preprocess(
                 (val: any) => {
                     if (!Array.isArray(val)) return val;
@@ -132,9 +136,6 @@ export async function generateRecipeFromAI(
         const { object } = await generateObject({
             model: textModel,
             schema,
-            providerOptions: {
-                openai: { structuredOutputs: false },
-            },
             prompt: `
         You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below and return it as JSON.
 

@@ -15,9 +15,36 @@ Custom additions in this fork:
 ## Tech Stack
 
 - Next.js 16, TypeScript, Vercel AI SDK (`ai` v5)
-- `@ai-sdk/openai` for OpenAI-compatible providers (OpenAI, MiniMax, Groq)
+- `@ai-sdk/openai` for OpenAI-compatible providers (OpenAI, MiniMax)
+- `@ai-sdk/groq` for Groq (native provider, avoids json_object fallback issues)
 - `@huggingface/transformers` for local Whisper transcription
 - Node.js ≥ 18 required (WSL default is v12 — use `nvm use 22`)
+
+## Dev Workflow (fast iteration)
+
+Production deploys take ~10 min via GitHub Actions CI. For rapid testing on mediasrv, use the dev compose which mounts source and uses Next.js HMR:
+
+```bash
+# --- First-time setup on mediasrv ---
+# Find the network mealie is on (update compose.dev.yml name: if different)
+docker inspect mealie | grep -A2 '"Networks"'
+
+# Build dev image (once, or after package.json changes)
+docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml build
+docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml up -d
+
+# Dev server available at http://mediasrv:4001
+
+# --- Everyday dev cycle (src/ code changes only, ~10 seconds) ---
+git push origin main          # from local machine
+ssh mediasrv "cd /home/cnurmi/repo/social-to-mealie && git pull"
+# Next.js HMR detects file changes and reloads automatically
+
+# --- After package.json changes ---
+ssh mediasrv "cd /home/cnurmi/repo/social-to-mealie && git pull && docker compose -f docs/compose.dev.yml build && docker compose -f docs/compose.dev.yml up -d"
+```
+
+Key files: `Dockerfile` (`dev` stage), `docs/compose.dev.yml`
 
 ## AI Provider Configuration
 
@@ -29,7 +56,7 @@ TEXT_MODEL=llama-3.3-70b-versatile
 GROQ_API_KEY=<key>   # or Docker secret: groq_api_key
 ```
 
-Groq uses an OpenAI-compatible API at `https://api.groq.com/openai/v1` via `@ai-sdk/openai`.
+Groq uses `@ai-sdk/groq` (native provider). This avoids the json_object fallback bug where `ai@5` retries via `@ai-sdk/openai` and the LLM drops required fields like `name`/`description`.
 Free tier available at [console.groq.com](https://console.groq.com). Budget alternative: `llama-3.1-8b-instant`.
 
 ### MiniMax (supported, not in production)
