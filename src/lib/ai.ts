@@ -97,7 +97,6 @@ export async function generateRecipeFromAI(
             ),
             recipeInstructions: z.preprocess(
                 (val: any) => {
-                    console.info("[ai] raw recipeInstructions:", JSON.stringify(val));
                     if (!Array.isArray(val)) return val;
                     // Flatten HowToSection -> HowToStep and normalize strings
                     const steps: any[] = [];
@@ -137,11 +136,17 @@ export async function generateRecipeFromAI(
                 openai: { structuredOutputs: false },
             },
             prompt: `
-         You are an expert chef assistant. Review the following recipe transcript and refine it for clarity, conciseness, and accuracy.
-        Ensure ingredients and instructions are well-formatted and easy to follow.
-        Correct any obvious errors or omissions.
-        Output must be valid JSON-LD Schema.org Recipe format.
-        The keywords field should not be modified leave it as it comes, it they are not present dont include them.
+        You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below.
+
+        CRITICAL - recipeIngredient field:
+        - List EVERY ingredient mentioned anywhere in the transcript or instructions, with quantities and units
+        - If an ingredient appears in the instructions but not explicitly listed, still include it
+        - Each ingredient must be a plain string like "200g chicken breast" or "1 tbsp olive oil"
+        - Do NOT leave this field empty or with only 1 item if the recipe clearly has more ingredients
+
+        CRITICAL - recipeInstructions field:
+        - Include ALL steps in the correct order
+        - Each step must have a "text" field with the full instruction
 
         <Metadata>
           Post URL: ${postURL}
@@ -153,21 +158,10 @@ export async function generateRecipeFromAI(
           ${transcription}
         </Transcription>
 
-        ${
-            tags && tags.length > 0 && Array.isArray(tags)
-                ? `<keywords>${tags.join(", ")}</keywords>`
-                : ""
-        }
-
-                ${
-                    tags && tags.length > 0 && !Array.isArray(tags)
-                        ? `<keywords>${tags}</keywords>`
-                        : ""
-                }
+        ${tags && tags.length > 0 ? `<keywords>${Array.isArray(tags) ? tags.join(", ") : tags}</keywords>` : ""}
 
         Use the thumbnail for the image field and the post URL for the url field.
-        Extract ingredients and instructions clearly.
-        Output must be valid JSON-LD Schema.org Recipe format.
+        Leave keywords exactly as provided, do not modify them.
         ${
             extraPrompt.length > 1
                 ? ` Also the user requests that:
