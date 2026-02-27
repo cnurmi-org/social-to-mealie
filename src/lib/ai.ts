@@ -220,11 +220,14 @@ export async function checkRecipeCoherence(
             mode: generateObjectMode,
             providerOptions: generateObjectProviderOptions,
             schema,
-            prompt: `You are a recipe quality checker. Given the recipe name, ingredient list, and instructions below, determine if they form a coherent dish.
+            prompt: `You are a recipe quality checker. Given the recipe name, ingredient list, and instructions below, determine if they form a coherent, complete dish.
 
-A FAILURE means the content clearly does not match the named dish — for example, a "Chicken Wrap" recipe where the instructions never mention assembling a wrap, or a "Chocolate Cake" where the ingredients contain no chocolate.
+A FAILURE means any of the following:
+- The instructions do not match the named dish (e.g. "Chicken Wrap" instructions that never mention assembling a wrap)
+- The instructions are clearly incomplete — they describe only part of the process and omit a critical step implied by the dish name or ingredients (e.g. "Cheeseburger Rolls" where instructions only cover making the filling but never mention rolling or assembling)
+- A key ingredient present in the ingredient list (e.g. tortillas, pastry, dough) is never used in the instructions
 
-Be strict: if the instructions are present but do not actually describe making the named dish, that is a failure.
+Be strict: a recipe where the instructions trail off before the dish is actually assembled or finished is a failure.
 
 Recipe name: ${name}
 
