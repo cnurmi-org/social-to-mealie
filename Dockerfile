@@ -27,6 +27,8 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # On a code-only change, Next.js recompiles only what changed.
 RUN --mount=type=cache,target=/app/.next/cache \
     node --run build
+# Resolve pnpm symlink so COPY in runner gets the actual native .so files.
+RUN cp -rL node_modules/onnxruntime-node /tmp/onnxruntime-node
 
 FROM base AS runner
 WORKDIR /app
@@ -53,8 +55,8 @@ COPY --chown=nextjs:nodejs ./entrypoint.sh /app/entrypoint.sh
 
 # @huggingface/transformers loads onnxruntime-node at runtime via dlopen.
 # Next.js standalone tracing does not follow dlopen dependencies, so the
-# native .so files are missing. Copy the entire package explicitly.
-COPY --chown=nextjs:nodejs --from=builder /app/node_modules/onnxruntime-node ./node_modules/onnxruntime-node
+# native .so files are missing. Copy the resolved (non-symlinked) package.
+COPY --chown=nextjs:nodejs --from=builder /tmp/onnxruntime-node ./node_modules/onnxruntime-node
 
 # Download yt-dlp at build time only if a version is explicitly provided
 RUN if [ -n "$YTDLP_VERSION" ]; then \
