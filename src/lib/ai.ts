@@ -17,16 +17,19 @@ const transcriptionModel = client.transcription(env.TRANSCRIPTION_MODEL);
 // For Groq, use the OpenAI-compatible endpoint instead of @ai-sdk/groq.
 // @ai-sdk/groq v2 unconditionally adds response_format: json_schema which
 // llama-3.3-70b-versatile (and most Groq models) do not support.
-// The OpenAI-compat provider sends json_object when mode:'json' is set.
 const textModel = env.TEXT_PROVIDER === "minimax"
     ? createOpenAI({ baseURL: "https://api.minimax.io/v1", apiKey: env.MINIMAX_API_KEY }).chat(env.TEXT_MODEL)
     : env.TEXT_PROVIDER === "groq"
-    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY, compatibility: "compatible" }).chat(env.TEXT_MODEL)
+    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY }).chat(env.TEXT_MODEL)
     : client.chat(env.TEXT_MODEL);
 
 // Groq models (except a handful) do not support json_schema structured outputs.
 // Use json mode for Groq which sends response_format: json_object instead.
+// structuredOutputs: false in providerOptions prevents the AI SDK from using json_schema.
 const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "json" as const : "auto" as const;
+const generateObjectProviderOptions = env.TEXT_PROVIDER === "groq"
+    ? { openai: { structuredOutputs: false } }
+    : undefined;
 
 export async function getTranscription(blob: Blob): Promise<string> {
     if (env.LOCAL_TRANSCRIPTION_MODEL) {
@@ -145,6 +148,7 @@ export async function generateRecipeFromAI(
         const { object } = await generateObject({
             model: textModel,
             mode: generateObjectMode,
+            providerOptions: generateObjectProviderOptions,
             schema,
             prompt: `
         You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below and return it as JSON.
@@ -204,6 +208,7 @@ export async function checkRecipeCoherence(
         const { object } = await generateObject({
             model: textModel,
             mode: generateObjectMode,
+            providerOptions: generateObjectProviderOptions,
             schema,
             prompt: `You are a recipe quality checker. Given the recipe name, ingredient list, and instructions below, determine if they form a coherent dish.
 
@@ -255,6 +260,7 @@ export async function generateMissingContent(
         const { object } = await generateObject({
             model: textModel,
             mode: generateObjectMode,
+            providerOptions: generateObjectProviderOptions,
             schema,
             prompt: `You are an expert chef assistant. A recipe named "${recipe.name}" is incomplete.
 ${recipe.description ? `Description: ${recipe.description}` : ""}
