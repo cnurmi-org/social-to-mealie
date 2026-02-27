@@ -34,6 +34,13 @@ export type progressType = {
     videoDownloaded: null | boolean;
     audioTranscribed: null | boolean;
     recipeCreated: null | boolean;
+    coherenceChecked: null | boolean;
+};
+
+export type coherenceResult = {
+    pass: boolean;
+    issue: string | null;
+    suggestion: string | null;
 };
 
 export type socialMediaResult = {
@@ -53,4 +60,35 @@ export type tag = {
 export type Option = {
     label: string;
     value: string;
+};
+
+export type MealieRecipeFull = {
+    id: string;
+    slug: string;
+    name: string;
+    description: string | null;
+    orgURL: string | null;
+    image: string | null;
+    recipeIngredient: { note?: string; originalText?: string }[];
+    recipeInstructions: { text: string; title: string }[];
+};
+
+export type CheckItem = {
+    pass: boolean;
+    fixable: boolean;
+};
+
+export type RecipeCheckResult = {
+    id: string;
+    slug: string;
+    name: string;
+    mealieUrl: string;
+    editUrl: string;
+    checks: {
+        hasIngredients: CheckItem;
+        hasInstructions: CheckItem;
+        hasImage: CheckItem;
+        hasSourceUrl: CheckItem;
+    };
+    fixed: string[] | null;
 };

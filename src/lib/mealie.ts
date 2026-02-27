@@ -1,6 +1,6 @@
 import { env } from "@//lib/constants";
 import emojiStrip from "emoji-strip";
-import type { recipeInfo, recipeResult } from "./types";
+import type { recipeInfo, recipeResult, MealieRecipeFull } from "./types";
 
 export async function postRecipe(recipeData: any) {
     try {
@@ -65,4 +65,77 @@ export async function getRecipe(recipeSlug: string): Promise<recipeResult> {
         imageUrl: `${env.MEALIE_URL}/api/media/recipes/${body.id}/images/original.webp`,
         url: `${env.MEALIE_URL}/g/${env.MEALIE_GROUP_NAME}/r/${recipeSlug}`,
     };
+}
+
+export async function getFullRecipe(slug: string): Promise<MealieRecipeFull> {
+    const res = await fetch(`${env.MEALIE_URL}/api/recipes/${slug}`, {
+        method: "GET",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.MEALIE_API_KEY}`,
+        },
+    });
+
+    if (!res.ok) throw new Error(`Failed to get recipe: ${slug}`);
+    const body = await res.json();
+
+    return {
+        id: body.id,
+        slug: body.slug,
+        name: body.name,
+        description: body.description ?? null,
+        orgURL: body.orgURL ?? null,
+        image: body.image ?? null,
+        recipeIngredient: body.recipeIngredient ?? [],
+        recipeInstructions: body.recipeInstructions ?? [],
+    };
+}
+
+export async function getAllRecipes(): Promise<MealieRecipeFull[]> {
+    const results: MealieRecipeFull[] = [];
+    let page = 1;
+    const perPage = 50;
+
+    while (true) {
+        const res = await fetch(
+            `${env.MEALIE_URL}/api/recipes?perPage=${perPage}&page=${page}`,
+            {
+                method: "GET",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${env.MEALIE_API_KEY}`,
+                },
+            }
+        );
+
+        if (!res.ok) throw new Error("Failed to list recipes");
+        const body = await res.json();
+        const items: any[] = body.items ?? [];
+        if (items.length === 0) break;
+
+        const full = await Promise.all(items.map((r: any) => getFullRecipe(r.slug)));
+        results.push(...full);
+
+        if (items.length < perPage) break;
+        page++;
+    }
+
+    return results;
+}
+
+export async function updateRecipe(slug: string, patch: Partial<MealieRecipeFull>): Promise<void> {
+    const res = await fetch(`${env.MEALIE_URL}/api/recipes/${slug}`, {
+        method: "PATCH",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${env.MEALIE_API_KEY}`,
+        },
+        body: JSON.stringify(patch),
+    });
+
+    if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`Failed to update recipe ${slug}: ${res.status} ${errorText}`);
+        throw new Error(`Failed to update recipe: ${slug}`);
+    }
 }

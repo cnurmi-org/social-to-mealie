@@ -1,6 +1,6 @@
-import { getRecipe, postRecipe } from "@//lib/mealie";
+import { getRecipe, getFullRecipe, postRecipe } from "@//lib/mealie";
 import type { progressType, recipeInfo, socialMediaResult } from "@//lib/types";
-import { generateRecipeFromAI, getTranscription } from "@/lib/ai"; // Import new AI functions
+import { generateRecipeFromAI, getTranscription, checkRecipeCoherence } from "@/lib/ai";
 import { env } from "@/lib/constants";
 import { downloadMediaWithYtDlp } from "@/lib/yt-dlp";
 
@@ -21,6 +21,7 @@ async function handleRequest(
         videoDownloaded: null,
         audioTranscribed: null,
         recipeCreated: null,
+        coherenceChecked: null,
     };
 
     try {
@@ -64,13 +65,32 @@ async function handleRequest(
             controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ progress })}\n\n`)
             );
+        }
+
+        // Step 4: AI coherence check
+        let coherenceResult = { pass: true, issue: null as string | null, suggestion: null as string | null };
+        try {
+            const fullRecipe = await getFullRecipe(await mealieResponse);
+            const ingredients = fullRecipe.recipeIngredient.map((i) => i.originalText ?? i.note ?? "").filter(Boolean);
+            const instructions = fullRecipe.recipeInstructions.map((s) => s.text).filter(Boolean);
+            coherenceResult = await checkRecipeCoherence(fullRecipe.name, ingredients, instructions);
+            progress.coherenceChecked = coherenceResult.pass;
+        } catch (err) {
+            console.error("Coherence check failed:", err);
+            progress.coherenceChecked = false;
+        }
+
+        if (isSse && controller) {
             controller.enqueue(
-                encoder.encode(`data: ${JSON.stringify(createdRecipe)}\n\n`)
+                encoder.encode(`data: ${JSON.stringify({ progress })}\n\n`)
+            );
+            controller.enqueue(
+                encoder.encode(`data: ${JSON.stringify({ ...createdRecipe, coherenceResult })}\n\n`)
             );
             controller.close();
             return;
         }
-        return new Response(JSON.stringify({ createdRecipe, progress }), {
+        return new Response(JSON.stringify({ createdRecipe, coherenceResult, progress }), {
             status: 200,
         });
     } catch (error: any) {

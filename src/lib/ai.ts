@@ -3,6 +3,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { createGroq } from "@ai-sdk/groq";
 import { experimental_transcribe, generateObject } from "ai";
 import { z } from "zod";
+import type { MealieRecipeFull } from "./types";
 import { pipeline } from '@huggingface/transformers';
 import {WaveFile} from 'wavefile';
 
@@ -176,5 +177,104 @@ export async function generateRecipeFromAI(
     } catch (error) {
         console.error("Error generating recipe with AI:", error);
         throw new Error("Failed to generate recipe structure");
+    }
+}
+
+export async function checkRecipeCoherence(
+    name: string,
+    ingredients: string[],
+    instructions: string[]
+): Promise<{ pass: boolean; issue: string | null; suggestion: string | null }> {
+    const schema = z.object({
+        pass: z.boolean(),
+        issue: z.string().nullable(),
+        suggestion: z.string().nullable(),
+    });
+
+    try {
+        const { object } = await generateObject({
+            model: textModel,
+            schema,
+            prompt: `You are a recipe quality checker. Given the recipe name, ingredient list, and instructions below, determine if they form a coherent dish.
+
+A FAILURE means the content clearly does not match the named dish — for example, a "Chicken Wrap" recipe where the instructions never mention assembling a wrap, or a "Chocolate Cake" where the ingredients contain no chocolate.
+
+Be strict: if the instructions are present but do not actually describe making the named dish, that is a failure.
+
+Recipe name: ${name}
+
+Ingredients:
+${ingredients.map((i, n) => `${n + 1}. ${i}`).join("\n")}
+
+Instructions:
+${instructions.map((s, n) => `${n + 1}. ${s}`).join("\n")}
+
+Return:
+- pass: true if the recipe is coherent, false if not
+- issue: null if pass, otherwise a short description of the specific mismatch
+- suggestion: null if pass, otherwise a brief suggestion for what the instructions should cover`,
+        });
+
+        return object;
+    } catch (error) {
+        console.error("Error checking recipe coherence:", error);
+        return { pass: true, issue: null, suggestion: null };
+    }
+}
+
+export async function generateMissingContent(
+    recipe: MealieRecipeFull,
+    missing: ("ingredients" | "instructions")[]
+): Promise<Partial<MealieRecipeFull>> {
+    const ingredientList = recipe.recipeIngredient
+        .map((i) => i.originalText ?? i.note ?? "")
+        .filter(Boolean);
+    const instructionList = recipe.recipeInstructions
+        .map((s) => s.text)
+        .filter(Boolean);
+
+    const schema = z.object({
+        recipeIngredient: z.array(z.string()).optional(),
+        recipeInstructions: z.array(z.string()).optional(),
+    });
+
+    const needIngredients = missing.includes("ingredients");
+    const needInstructions = missing.includes("instructions");
+
+    try {
+        const { object } = await generateObject({
+            model: textModel,
+            schema,
+            prompt: `You are an expert chef assistant. A recipe named "${recipe.name}" is incomplete.
+${recipe.description ? `Description: ${recipe.description}` : ""}
+${!needIngredients && ingredientList.length > 0 ? `Existing ingredients:\n${ingredientList.map((i, n) => `${n + 1}. ${i}`).join("\n")}` : ""}
+${!needInstructions && instructionList.length > 0 ? `Existing instructions:\n${instructionList.map((s, n) => `${n + 1}. ${s}`).join("\n")}` : ""}
+
+${needIngredients ? "Generate a complete ingredient list (plain strings with quantities, e.g. '200g chicken breast')." : ""}
+${needInstructions ? "Generate complete step-by-step instructions." : ""}
+
+Return only the missing fields.`,
+        });
+
+        const patch: Partial<MealieRecipeFull> = {};
+
+        if (needIngredients && object.recipeIngredient) {
+            patch.recipeIngredient = object.recipeIngredient.map((note) => ({
+                note,
+                originalText: note,
+                disableAmount: true,
+            }));
+        }
+        if (needInstructions && object.recipeInstructions) {
+            patch.recipeInstructions = object.recipeInstructions.map((text) => ({
+                text,
+                title: "",
+            }));
+        }
+
+        return patch;
+    } catch (error) {
+        console.error("Error generating missing content:", error);
+        throw new Error("Failed to generate missing recipe content");
     }
 }

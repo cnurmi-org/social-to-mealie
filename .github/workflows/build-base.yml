@@ -1,8 +1,12 @@
-name: Build and Publish Docker Image
+name: Build and Push Base Image
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
+    paths:
+      - Dockerfile.base
+  workflow_dispatch:
 
 jobs:
   build:
@@ -24,14 +28,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push base image
         uses: docker/build-push-action@v6
         with:
           context: .
+          file: Dockerfile.base
           platforms: linux/amd64,linux/arm64
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
-            ghcr.io/${{ github.repository }}:latest
+            ghcr.io/cnurmi/social-to-mealie-base:latest
+            ghcr.io/cnurmi/social-to-mealie-base:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

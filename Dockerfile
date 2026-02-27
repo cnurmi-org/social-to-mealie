@@ -1,21 +1,12 @@
-FROM node:lts-slim AS base
-
-RUN apt-get update && apt-get install -y \
-    python3 \
-    python3-pip \
-    wget \
-    curl \
-    unzip \
-    ffmpeg \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
+# Pre-built base image containing node:22-slim + ffmpeg + python3 + system tools.
+# Built separately via Dockerfile.base / build-base.yml — never rebuilt during normal CI.
+FROM ghcr.io/cnurmi/social-to-mealie-base:latest AS base
 
 FROM base AS deps
 COPY package.json pnpm-lock.yaml ./
-RUN npm install -g pnpm
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
+    corepack enable && corepack prepare pnpm@latest --activate && \
+    pnpm install --frozen-lockfile
 
 FROM base AS dev
 WORKDIR /app
@@ -32,59 +23,51 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN node --run build
+# Cache mount preserves Turbopack/webpack module graph between builds.
+# On a code-only change, Next.js recompiles only what changed.
+RUN --mount=type=cache,target=/app/.next/cache \
+    node --run build
 
 FROM base AS runner
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y python3-pip && rm -rf /var/lib/apt/lists/*
-
 ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Allow selecting a yt-dlp version at build or runtime
-ARG YTDLP_VERSION=latest
+# Empty default — yt-dlp is downloaded at runtime by entrypoint.sh.
+# Override at build time (--build-arg YTDLP_VERSION=2024.12.13) to bake a specific version in.
+ARG YTDLP_VERSION=
 ENV YTDLP_VERSION=${YTDLP_VERSION}
-
-# Default path for yt-dlp binary
 ENV YTDLP_PATH=./yt-dlp
 
-RUN groupadd -g 1001 nodejs
-RUN useradd -r -u 1001 -g nodejs nextjs
+RUN groupadd -g 1001 nodejs && \
+    useradd -r -u 1001 -g nodejs nextjs
 
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY ./entrypoint.sh /app/entrypoint.sh
+# Copy standalone output with correct ownership inline — avoids a separate chown -R pass
+COPY --chown=nextjs:nodejs --from=builder /app/.next/standalone ./
+COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
+COPY --chown=nextjs:nodejs --from=builder /app/public ./public
+COPY --chown=nextjs:nodejs ./entrypoint.sh /app/entrypoint.sh
 
-RUN chown -R nextjs:nodejs /app
-
-# If a build-time YTDLP_VERSION is provided, try downloading yt-dlp into the path.
+# Download yt-dlp at build time only if a version is explicitly provided
 RUN if [ -n "$YTDLP_VERSION" ]; then \
     if [ "$YTDLP_VERSION" = "latest" ]; then \
     YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp"; \
     else \
     YTDLP_URL="https://github.com/yt-dlp/yt-dlp/releases/download/${YTDLP_VERSION}/yt-dlp"; \
     fi && \
-    wget -q -O $YTDLP_PATH "$YTDLP_URL" && chmod +x $YTDLP_PATH || true; \
+    wget -q -O $YTDLP_PATH "$YTDLP_URL" && chmod +x $YTDLP_PATH && \
+    chown nextjs:nodejs "$YTDLP_PATH" || true; \
     fi
 
-# Ensure the downloaded binary (if any) is owned by the app user
-RUN if [ -f "$YTDLP_PATH" ]; then \
-    chown nextjs:nodejs "$YTDLP_PATH" || true; \
-    chmod +x "$YTDLP_PATH" || true; \
-    fi
+RUN mkdir -p /app/.cache && chown nextjs:nodejs /app/.cache
 
 USER nextjs
 
 EXPOSE 3000
 
-# Ensure cache dir exists
-RUN mkdir -p /app/node_modules/@xenova/.cache/
-RUN chmod 777 -R /app/node_modules/@xenova/
-
-# /bin/sh is available in Debian, but you can also use /bin/bash if your entrypoint needs it
+# Standalone output runs via server.js — does not require the `next` binary
 ENTRYPOINT ["/bin/sh","/app/entrypoint.sh"]
-CMD ["node", "--run", "start"]
+CMD ["node", "server.js"]

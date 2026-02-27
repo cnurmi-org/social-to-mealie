@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import type { progressType, recipeResult } from '@/lib/types';
+import type { coherenceResult, progressType, recipeResult } from '@/lib/types';
 import { CircleCheck, CircleX } from 'lucide-react';
 import { useState } from 'react';
 
@@ -13,6 +13,7 @@ export function RecipeFetcher({ tags }: { tags: string[] }) {
   const [progress, setProgress] = useState<progressType | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [recipes, setRecipe] = useState<recipeResult[] | null>(null);
+  const [coherenceResults, setCoherenceResults] = useState<Record<string, coherenceResult>>({});
   const [loading, setLoading] = useState(false);
 
   async function fetchRecipe() {
@@ -49,7 +50,11 @@ export function RecipeFetcher({ tags }: { tags: string[] }) {
                 setProgress(data.progress);
               }
               if (data.name) {
-                setRecipe((recipes) => [...(recipes || []), data]);
+                const { coherenceResult: cr, ...recipeData } = data;
+                setRecipe((recipes) => [...(recipes || []), recipeData]);
+                if (cr) {
+                  setCoherenceResults((prev) => ({ ...prev, [recipeData.url]: cr }));
+                }
                 setLoading(false);
                 setTimeout(() => {
                   setProgress(null);
@@ -120,22 +125,43 @@ export function RecipeFetcher({ tags }: { tags: string[] }) {
                 <CircleX />
               )}
             </p>
+            <p className={'flex gap-4'}>
+              Recipe quality checked{' '}
+              {progress.coherenceChecked === true ? (
+                <CircleCheck />
+              ) : progress.coherenceChecked === null ? (
+                <Spinner size={'small'} />
+              ) : (
+                <CircleX />
+              )}
+            </p>
           </CardContent>
         </Card>
       )}
       {recipes && (
         <div className='flex flex-wrap justify-center gap-4 max-w-7xl'>
-          {recipes.map((recipe) => (
-            <a href={recipe.url} key={recipe.url} target='_blank' rel='noreferrer'>
-              <Card className='mt-4 w-60'>
-                <CardHeader>
-                  <img src={recipe.imageUrl} alt={recipe.description} className='aspect-square object-cover' />
-                  <CardTitle>{recipe.name}</CardTitle>
-                  <CardDescription>{recipe.description}</CardDescription>
-                </CardHeader>
-              </Card>
-            </a>
-          ))}
+          {recipes.map((recipe) => {
+            const coherence = coherenceResults[recipe.url];
+            return (
+              <div key={recipe.url} className='flex flex-col items-center'>
+                <a href={recipe.url} target='_blank' rel='noreferrer'>
+                  <Card className='mt-4 w-60'>
+                    <CardHeader>
+                      <img src={recipe.imageUrl} alt={recipe.description} className='aspect-square object-cover' />
+                      <CardTitle>{recipe.name}</CardTitle>
+                      <CardDescription>{recipe.description}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                </a>
+                {coherence && !coherence.pass && (
+                  <div className='w-60 mt-1 rounded-md border border-yellow-400 bg-yellow-50 px-3 py-2 text-sm text-yellow-800'>
+                    <strong>Quality issue:</strong> {coherence.issue}
+                    {coherence.suggestion && <p className='mt-1 text-yellow-700'>{coherence.suggestion}</p>}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </>
