@@ -21,8 +21,8 @@ const textModel = env.TEXT_PROVIDER === "minimax"
     : client.chat(env.TEXT_MODEL);
 
 // Groq models (except a handful) do not support json_schema structured outputs.
-// Use json mode for Groq so the schema is used only for TypeScript type safety.
-const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "json" as const : "auto" as const;
+// Use tool mode (function calling) which all Groq models support.
+const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "tool" as const : "auto" as const;
 
 export async function getTranscription(blob: Blob): Promise<string> {
     if (env.LOCAL_TRANSCRIPTION_MODEL) {
