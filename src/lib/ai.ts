@@ -21,7 +21,7 @@ const transcriptionModel = client.transcription(env.TRANSCRIPTION_MODEL);
 const textModel = env.TEXT_PROVIDER === "minimax"
     ? createOpenAI({ baseURL: "https://api.minimax.io/v1", apiKey: env.MINIMAX_API_KEY }).chat(env.TEXT_MODEL)
     : env.TEXT_PROVIDER === "groq"
-    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY }).chat(env.TEXT_MODEL)
+    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY, compatibility: "compatible" }).chat(env.TEXT_MODEL)
     : client.chat(env.TEXT_MODEL);
 
 // Groq models (except a handful) do not support json_schema structured outputs.
