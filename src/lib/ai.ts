@@ -153,9 +153,16 @@ export async function generateRecipeFromAI(
             prompt: `
         You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below and return it as JSON.
 
+        Use BOTH the caption and the transcription as sources — they are complementary.
+        The caption often contains the recipe name, exact ingredient quantities, and structured steps.
+        The transcription contains the spoken walkthrough.
+
+        CRITICAL - name field:
+        - Use the recipe name from the caption if present; otherwise infer from the transcription
+
         CRITICAL - recipeIngredient field:
-        - List EVERY ingredient mentioned anywhere in the transcript or instructions, with quantities and units
-        - If an ingredient appears in the instructions but not explicitly listed, still include it
+        - Merge ingredients from BOTH the caption and the transcription
+        - Prefer the caption's quantities/units when they conflict with the transcription
         - Each ingredient must be a plain string like "200g chicken breast" or "1 tbsp olive oil"
         - Do NOT leave this field empty or with only 1 item if the recipe clearly has more ingredients
 
@@ -163,15 +170,18 @@ export async function generateRecipeFromAI(
         - Include ALL steps in the correct order
         - Each step must have a "text" field with the full instruction
 
-        <Metadata>
-          Post URL: ${postURL}
-          Description: ${description}
-          Thumbnail: ${thumbnail}
-        </Metadata>
+        <Caption>
+          ${description}
+        </Caption>
 
         <Transcription>
           ${transcription}
         </Transcription>
+
+        <Metadata>
+          Post URL: ${postURL}
+          Thumbnail: ${thumbnail}
+        </Metadata>
 
         ${tags && tags.length > 0 ? `<keywords>${Array.isArray(tags) ? tags.join(", ") : tags}</keywords>` : ""}
 
