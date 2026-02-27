@@ -14,15 +14,19 @@ const client = createOpenAI({
 
 const transcriptionModel = client.transcription(env.TRANSCRIPTION_MODEL);
 
+// For Groq, use the OpenAI-compatible endpoint instead of @ai-sdk/groq.
+// @ai-sdk/groq v2 unconditionally adds response_format: json_schema which
+// llama-3.3-70b-versatile (and most Groq models) do not support.
+// The OpenAI-compat provider sends json_object when mode:'json' is set.
 const textModel = env.TEXT_PROVIDER === "minimax"
     ? createOpenAI({ baseURL: "https://api.minimax.io/v1", apiKey: env.MINIMAX_API_KEY }).chat(env.TEXT_MODEL)
     : env.TEXT_PROVIDER === "groq"
-    ? createGroq({ apiKey: env.GROQ_API_KEY })(env.TEXT_MODEL)
+    ? createOpenAI({ baseURL: "https://api.groq.com/openai/v1", apiKey: env.GROQ_API_KEY }).chat(env.TEXT_MODEL)
     : client.chat(env.TEXT_MODEL);
 
 // Groq models (except a handful) do not support json_schema structured outputs.
-// Use tool mode (function calling) which all Groq models support.
-const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "tool" as const : "auto" as const;
+// Use json mode for Groq which sends response_format: json_object instead.
+const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "json" as const : "auto" as const;
 
 export async function getTranscription(blob: Blob): Promise<string> {
     if (env.LOCAL_TRANSCRIPTION_MODEL) {
