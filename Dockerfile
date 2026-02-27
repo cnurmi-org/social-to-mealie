@@ -40,7 +40,7 @@ ENV HOSTNAME="0.0.0.0"
 # Override at build time (--build-arg YTDLP_VERSION=2024.12.13) to bake a specific version in.
 ARG YTDLP_VERSION=
 ENV YTDLP_VERSION=${YTDLP_VERSION}
-ENV YTDLP_PATH=./yt-dlp
+ENV YTDLP_PATH=/app/.cache/yt-dlp
 
 RUN groupadd -g 1001 nodejs && \
     useradd -r -u 1001 -g nodejs nextjs
