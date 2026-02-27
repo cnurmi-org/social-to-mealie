@@ -51,6 +51,11 @@ COPY --chown=nextjs:nodejs --from=builder /app/.next/static ./.next/static
 COPY --chown=nextjs:nodejs --from=builder /app/public ./public
 COPY --chown=nextjs:nodejs ./entrypoint.sh /app/entrypoint.sh
 
+# @huggingface/transformers loads onnxruntime-node at runtime via dlopen.
+# Next.js standalone tracing does not follow dlopen dependencies, so the
+# native .so files are missing. Copy the entire package explicitly.
+COPY --chown=nextjs:nodejs --from=builder /app/node_modules/onnxruntime-node ./node_modules/onnxruntime-node
+
 # Download yt-dlp at build time only if a version is explicitly provided
 RUN if [ -n "$YTDLP_VERSION" ]; then \
     if [ "$YTDLP_VERSION" = "latest" ]; then \
