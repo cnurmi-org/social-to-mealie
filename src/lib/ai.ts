@@ -20,6 +20,10 @@ const textModel = env.TEXT_PROVIDER === "minimax"
     ? createGroq({ apiKey: env.GROQ_API_KEY })(env.TEXT_MODEL)
     : client.chat(env.TEXT_MODEL);
 
+// Groq models (except a handful) do not support json_schema structured outputs.
+// Use json mode for Groq so the schema is used only for TypeScript type safety.
+const generateObjectMode = env.TEXT_PROVIDER === "groq" ? "json" as const : "auto" as const;
+
 export async function getTranscription(blob: Blob): Promise<string> {
     if (env.LOCAL_TRANSCRIPTION_MODEL) {
         console.info("Using local Whisper model for transcription:", env.LOCAL_TRANSCRIPTION_MODEL);
@@ -136,6 +140,7 @@ export async function generateRecipeFromAI(
     try {
         const { object } = await generateObject({
             model: textModel,
+            mode: generateObjectMode,
             schema,
             prompt: `
         You are an expert chef assistant. Extract a complete, accurate recipe from the transcript below and return it as JSON.
@@ -194,6 +199,7 @@ export async function checkRecipeCoherence(
     try {
         const { object } = await generateObject({
             model: textModel,
+            mode: generateObjectMode,
             schema,
             prompt: `You are a recipe quality checker. Given the recipe name, ingredient list, and instructions below, determine if they form a coherent dish.
 
@@ -244,6 +250,7 @@ export async function generateMissingContent(
     try {
         const { object } = await generateObject({
             model: textModel,
+            mode: generateObjectMode,
             schema,
             prompt: `You are an expert chef assistant. A recipe named "${recipe.name}" is incomplete.
 ${recipe.description ? `Description: ${recipe.description}` : ""}
