@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
-import { Option } from "@/lib/types"
+import type { Option } from "@/lib/types"
 
 interface MultiSelectProps {
   options: Option[]
@@ -84,10 +84,10 @@ export function MultiSelectCombobox({
             {selected.map((item) => (
               <Badge variant="secondary" key={item} className="mr-1 mb-1">
                 {options.find((option) => option.value === item)?.label}
-                <div
+                <button
+                  type="button"
                   className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
-                  role="button"
-                  tabIndex={0}
+                  aria-label={`Remove ${options.find((option) => option.value === item)?.label ?? item}`}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       handleUnselect(item)
@@ -104,7 +104,7 @@ export function MultiSelectCombobox({
                   }}
                 >
                   <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </div>
+                </button>
               </Badge>
             ))}
           </div>

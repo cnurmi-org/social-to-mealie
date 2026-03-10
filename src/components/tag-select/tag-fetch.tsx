@@ -1,6 +1,6 @@
 import { MultiSelectCombobox } from "@/components/ui/multi-select"
 import { env } from "@/lib/constants"
-import { Option, tag } from "@/lib/types"
+import type { Option, tag } from "@/lib/types"
 
 export default async function GetTagSelect({ query }: { query: string | undefined }) {
   const tags: Option[] = []

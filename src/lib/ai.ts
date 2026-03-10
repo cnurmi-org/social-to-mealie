@@ -1,6 +1,5 @@
 import { env } from "./constants";
 import { createOpenAI } from "@ai-sdk/openai";
-import { createGroq } from "@ai-sdk/groq";
 import { experimental_transcribe, generateObject } from "ai";
 import { z } from "zod";
 import type { MealieRecipeFull } from "./types";
@@ -40,7 +39,7 @@ export async function getTranscription(blob: Blob): Promise<string> {
             const wav = new WaveFile(new Uint8Array(arrayBuffer));
             wav.toBitDepth('32f');
             wav.toSampleRate(16000);
-            let audioData: any = wav.getSamples();
+            const audioData: any = wav.getSamples();
             const result = await transcriber(audioData, {
                 chunk_length_s: 30,
                 stride_length_s: 5,

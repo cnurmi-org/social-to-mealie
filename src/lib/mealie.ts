@@ -1,6 +1,5 @@
 import { env } from "@//lib/constants";
-import emojiStrip from "emoji-strip";
-import type { recipeInfo, recipeResult, MealieRecipeFull } from "./types";
+import type { recipeResult, MealieRecipeFull } from "./types";
 
 export async function postRecipe(recipeData: any) {
     try {

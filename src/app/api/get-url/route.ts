@@ -1,5 +1,5 @@
 import { getRecipe, getFullRecipe, postRecipe } from "@//lib/mealie";
-import type { progressType, recipeInfo, socialMediaResult } from "@//lib/types";
+import type { progressType, socialMediaResult } from "@//lib/types";
 import { generateRecipeFromAI, getTranscription, checkRecipeCoherence } from "@/lib/ai";
 import { env } from "@/lib/constants";
 import { downloadMediaWithYtDlp } from "@/lib/yt-dlp";

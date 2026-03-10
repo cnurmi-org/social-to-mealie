@@ -1,21 +1,29 @@
 import { env } from "@/lib/constants";
 import type { socialMediaResult } from "@/lib/types";
 import { YtDlp, type VideoInfo } from "ytdlp-nodejs";
-import fs from "fs";
-import path from "path";
-import os from "os";
-import { exec } from "child_process";
-import { promisify } from "util";
+import fs from "node:fs";
+import path from "node:path";
+import os from "node:os";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
 const writeFileAsync = promisify(fs.writeFile);
 const readFileAsync = promisify(fs.readFile);
 const unlinkAsync = promisify(fs.unlink);
 
-const ytdlp = new YtDlp({
-    ffmpegPath: env.FFMPEG_PATH,
-    binaryPath: env.YTDLP_PATH,
-});
+let ytdlp: YtDlp | null = null;
+
+function getYtDlp() {
+    if (!ytdlp) {
+        ytdlp = new YtDlp({
+            ffmpegPath: env.FFMPEG_PATH,
+            binaryPath: env.YTDLP_PATH,
+        });
+    }
+
+    return ytdlp;
+}
 
 async function convertBufferToWav(inputBuffer: Uint8Array, fileExt: string = ""): Promise<Buffer> {
     const tempDir = os.tmpdir();
@@ -47,12 +55,12 @@ export async function downloadMediaWithYtDlp(
 ): Promise<socialMediaResult> {
     try {
         // Get video metadata first
-        const metadata = (await ytdlp.getInfoAsync(url, {
+        const metadata = (await getYtDlp().getInfoAsync(url, {
             cookies: env.COOKIES,
         })) as VideoInfo;
 
         // Get audio stream as a file/buffer
-        const audioFile = await ytdlp.getFileAsync(url, {
+        const audioFile = await getYtDlp().getFileAsync(url, {
             format: { filter: "audioonly" },
             cookies: env.COOKIES,
         });
