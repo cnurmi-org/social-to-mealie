@@ -1,0 +1,38 @@
+
+services:
+  # social-to-mealie - Import social media recipes into Mealie
+  social-to-mealie:
+    build:
+      context: /home/cnurmi/repo/social-to-mealie
+    image: social-to-mealie:local
+    container_name: social-to-mealie
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    profiles: ["apps", "all"]
+    networks:
+      - t3_proxy
+    ports:
+      - "4000:3000"
+    secrets:
+      - minimax_api_key
+      - mealie_api_key
+    environment:
+      TZ: $TZ
+      TEXT_PROVIDER: minimax
+      TEXT_MODEL: MiniMax-M2
+      MEALIE_URL: http://mealie:9000
+      MEALIE_GROUP_NAME: home
+      LOCAL_TRANSCRIPTION_MODEL: Xenova/whisper-base
+      YTDLP_VERSION: latest
+    labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.social-to-mealie-rtr.entrypoints=websecure"
+      - "traefik.http.routers.social-to-mealie-rtr.rule=Host(`recipes.$DOMAINNAME_1`)"
+      - "traefik.http.routers.social-to-mealie-rtr.tls=true"
+      ## Middlewares
+      - "traefik.http.routers.social-to-mealie-rtr.middlewares=chain-no-auth@file"
+      ## HTTP Services
+      - "traefik.http.routers.social-to-mealie-rtr.service=social-to-mealie-svc"
+      - "traefik.http.services.social-to-mealie-svc.loadbalancer.server.port=3000"

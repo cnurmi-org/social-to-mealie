@@ -1,0 +1,29 @@
+{
+  "name": "social-to-mealie",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "workspaceFolder": "/workspaces/social-to-mealie",
+  "postCreateCommand": "corepack enable && pnpm install --frozen-lockfile",
+  "postStartCommand": "if [ ! -f .env ] && [ -f .env.example ]; then cp .env.example .env; fi",
+  "containerEnv": {
+    "HOSTNAME": "0.0.0.0",
+    "PORT": "3000",
+    "NEXT_TELEMETRY_DISABLED": "1"
+  },
+  "forwardPorts": [
+    3000
+  ],
+  "portsAttributes": {
+    "3000": {
+      "label": "social-to-mealie"
+    }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  }
+}

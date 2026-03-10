@@ -3,6 +3,40 @@
 Have you found a recipe on social media and don’t want to write it out yourself? This tool lets you import recipes from
 videos directly into [Mealie](https://github.com/mealie-recipes/mealie).
 
+## Quick Start
+
+```bash
+make init
+cp .env.example .env
+make run
+```
+
+## Workspace Commands
+
+```bash
+make help
+make check
+make deploy
+```
+
+`make check` runs the safe local validation path for this repo: lint plus a production build.
+
+## Dev Container
+
+This repo now includes a devcontainer at [.devcontainer/devcontainer.json](/home/cnurmi/repo/social-to-mealie/.devcontainer/devcontainer.json).
+
+It is intended for reproducible development on `devbox` or in a remote container-capable editor. The devcontainer installs the Node 22 toolchain plus `ffmpeg` and `python3`, then seeds `.env` from `.env.example`.
+
+Typical flow:
+
+```bash
+make init
+make check
+make run
+```
+
+The production Docker image and deployment path are unchanged.
+
 **Tested social media platforms:**
 
 - Instagram
@@ -88,8 +122,10 @@ docker run --restart unless-stopped --name social-to-mealie \
 - GroqAI
 
 ## Partial support:
+
 Because theese providers don't support the transcriptions API it requires LOCAL_TRANSCRIPTION_MODEL to be set, recommended model: `Xenova/whisper-base`, you can use any model that is compatible with the ONNX runtime from hugging face
-- llmstudio 
+
+- llmstudio
 - ollama
 
 I can work with any other provider that is compatible with the OpenAI API, if you find any issues please open an issue.
