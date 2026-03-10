@@ -31,5 +31,5 @@ run:
 check: lint build
 
 deploy:
-	./deploy/register.sh /home/cnurmi/repo/homeserver
+	./deploy/register.sh /home/cnurmi/dev/repo/homeserver
 	@echo 'Next: commit homeserver changes, push, then restart the service on mediasrv.'

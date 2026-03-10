@@ -14,7 +14,7 @@ This directory contains the Docker Compose service definition and deployment scr
 
 ```bash
 # From project root
-./deploy/register.sh ~/repo/homeserver
+./deploy/register.sh ~/dev/repo/homeserver
 ```
 
 This will:
@@ -27,7 +27,7 @@ This will:
 Simply re-run the register script:
 
 ```bash
-./deploy/register.sh ~/repo/homeserver
+./deploy/register.sh ~/dev/repo/homeserver
 ```
 
 Then commit and push the homeserver repo changes.
@@ -39,7 +39,7 @@ Then commit and push the homeserver repo changes.
 3. **Run register script** to sync changes to homeserver
 4. **Commit in homeserver repo**:
    ```bash
-   cd ~/repo/homeserver
+   cd ~/dev/repo/homeserver
    git diff  # review changes
    git add compose/mediasrv/social-to-mealie.yml
    git commit -m "Update social-to-mealie service config"

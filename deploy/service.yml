@@ -3,7 +3,7 @@ services:
   # social-to-mealie - Import social media recipes into Mealie
   social-to-mealie:
     build:
-      context: /home/cnurmi/repo/social-to-mealie
+      context: /home/cnurmi/dev/repo/social-to-mealie
     image: social-to-mealie:local
     container_name: social-to-mealie
     security_opt:

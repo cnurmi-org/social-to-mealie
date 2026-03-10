@@ -30,18 +30,18 @@ Production deploys take ~10 min via GitHub Actions CI. For rapid testing on medi
 docker inspect mealie | grep -A2 '"Networks"'
 
 # Build dev image (once, or after package.json changes)
-docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml build
-docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml up -d
+docker compose -f /home/cnurmi/dev/repo/social-to-mealie/docs/compose.dev.yml build
+docker compose -f /home/cnurmi/dev/repo/social-to-mealie/docs/compose.dev.yml up -d
 
 # Dev server available at http://mediasrv:4001
 
 # --- Everyday dev cycle (src/ code changes only, ~10 seconds) ---
 git push origin main          # from local machine
-ssh mediasrv "cd /home/cnurmi/repo/social-to-mealie && git pull"
+ssh mediasrv "cd /home/cnurmi/dev/repo/social-to-mealie && git pull"
 # Next.js HMR detects file changes and reloads automatically
 
 # --- After package.json changes ---
-ssh mediasrv "cd /home/cnurmi/repo/social-to-mealie && git pull && docker compose -f docs/compose.dev.yml build && docker compose -f docs/compose.dev.yml up -d"
+ssh mediasrv "cd /home/cnurmi/dev/repo/social-to-mealie && git pull && docker compose -f docs/compose.dev.yml build && docker compose -f docs/compose.dev.yml up -d"
 ```
 
 Key files: `Dockerfile` (`dev` stage), `docs/compose.dev.yml`
