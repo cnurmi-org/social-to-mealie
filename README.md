@@ -23,7 +23,7 @@ make deploy
 
 ## Dev Container
 
-This repo now includes a devcontainer at [.devcontainer/devcontainer.json](/home/cnurmi/repo/social-to-mealie/.devcontainer/devcontainer.json).
+This repo now includes a devcontainer at [.devcontainer/devcontainer.json](/home/cnurmi/dev/repo/social-to-mealie/.devcontainer/devcontainer.json).
 
 It is intended for reproducible development on `devbox` or in a remote container-capable editor. The devcontainer installs the Node 22 toolchain plus `ffmpeg` and `python3`, then seeds `.env` from `.env.example`.
 

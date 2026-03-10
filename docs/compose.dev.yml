@@ -2,11 +2,11 @@
 #
 # Workflow:
 #   1. First time (or after package.json changes):
-#      docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml build
-#      docker compose -f /home/cnurmi/repo/social-to-mealie/docs/compose.dev.yml up -d
+#      docker compose -f /home/cnurmi/dev/repo/social-to-mealie/docs/compose.dev.yml build
+#      docker compose -f /home/cnurmi/dev/repo/social-to-mealie/docs/compose.dev.yml up -d
 #
 #   2. Code change (src/ only):
-#      git pull   # on mediasrv, in /home/cnurmi/repo/social-to-mealie
+#      git pull   # on mediasrv, in /home/cnurmi/dev/repo/social-to-mealie
 #      # Next.js HMR picks up the change automatically — no restart needed
 #
 #   3. Package change (package.json/pnpm-lock.yaml):
@@ -27,13 +27,13 @@ secrets:
 services:
   social-to-mealie-dev:
     build:
-      context: /home/cnurmi/repo/social-to-mealie
+      context: /home/cnurmi/dev/repo/social-to-mealie
       target: dev
     container_name: social-to-mealie-dev
     restart: unless-stopped
     volumes:
       # Mount entire repo — node_modules stays from the image build
-      - /home/cnurmi/repo/social-to-mealie:/app
+      - /home/cnurmi/dev/repo/social-to-mealie:/app
       # Anonymous volume keeps the container's node_modules (not the host's)
       - /app/node_modules
     environment:
